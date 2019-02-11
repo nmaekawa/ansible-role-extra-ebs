@@ -1,0 +1,20 @@
+galaxy_info:
+  author: nmaekawa
+  description: format and mount extra ebs in ec2 instance - the ebs must already be attached
+  license: MIT
+  min_ansible_version: 2.7.1
+  platforms:
+  - name: Ubuntu
+    versions:
+    - all
+  - name: Debian
+    versions:
+    - all
+  galaxy_tags:
+  - system
+  - ubuntu
+  - debian
+  - aws
+  - ebs
+dependencies: []
+

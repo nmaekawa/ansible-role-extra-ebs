@@ -1,0 +1,19 @@
+---
+#
+# assumes ec2 instance has a `ebs_device` volume already attached.
+# it will blindly format and mount the device!
+# *** data on the volume will be _erased_ ***
+#
+
+  - name: make filesystem out of ebs
+    filesystem:
+        fstype: ext4
+        dev: "{{ ebs_device }}"
+
+  - name: mount ebs
+    mount:
+        path: "{{ ebs_mountpoint }}"
+        src: "{{ ebs_device }}"
+        fstype: ext4
+        state: mounted
+
