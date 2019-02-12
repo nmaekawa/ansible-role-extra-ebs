@@ -21,17 +21,18 @@
     set_fact: dev_map={{ dev_result.stdout | regex_replace('(^.*),$', '\\1') | from_json }}
     when: "dev_result.stdout != ''"
 
-  - debug:
-      msg: "device exist {{ dev_map.name }}"
-    when: dev_result.stdout != ''
-
-  - debug:
-      msg: "device does not exist {{ device_name }}"
+  - fail:
+      msg: "specified device ({{ ebs_device }}) does not exist in target node"
     when: dev_result.stdout == ''
 
   - debug:
-      msg: "mountpoint is defined {{ dev_map.mountpoint }}"
-    when: dev_result.stdout != '' and dev_map.mountpoint
+      msg: "device already mounted in intended mountpoint {{ dev_map.mountpoint }}"
+    when: dev_result.stdout != '' and dev_map.mountpoint and dev_map.mountpoint == ebs_mountpoint
+
+  - fail:
+      msg: "device already mounted in different mountpoint ({{ dev_map.mountpoint }})"
+    when: dev_result.stdout != '' and dev_map.mountpoint and dev_map.mountpoint != ebs_mountpoint
+
 
   # only proceed to make filesys if device exists and not mounted
   - name: make filesystem out of ebs
@@ -47,4 +48,5 @@
         fstype: ext4
         state: mounted
     when: dev_result.stdout != '' and not dev_map.mountpoint
+
 
