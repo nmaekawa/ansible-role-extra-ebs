@@ -5,10 +5,40 @@
 # *** data on the volume will be _erased_ ***
 #
 
+  - name: define the device name
+    set_fact: device_name={{ ebs_device | basename }}
+
+  - name: query system for device name and mountpoint
+    shell: >
+      /bin/lsblk -o NAME,MOUNTPOINT -J | grep {{ device_name }}
+    register: dev_result
+    ignore_errors: True
+
+  - debug:
+      var: dev_result
+
+  - name: get mountpoint, if device is mounted
+    set_fact: dev_map={{ dev_result.stdout | regex_replace('(^.*),$', '\\1') | from_json }}
+    when: "dev_result.stdout != ''"
+
+  - debug:
+      msg: "device exist {{ dev_map.name }}"
+    when: dev_result.stdout != ''
+
+  - debug:
+      msg: "device does not exist {{ device_name }}"
+    when: dev_result.stdout == ''
+
+  - debug:
+      msg: "mountpoint is defined {{ dev_map.mountpoint }}"
+    when: dev_result.stdout != '' and dev_map.mountpoint
+
+  # only proceed to make filesys if device exists and not mounted
   - name: make filesystem out of ebs
     filesystem:
         fstype: ext4
         dev: "{{ ebs_device }}"
+    when: dev_result.stdout != '' and not dev_map.mountpoint
 
   - name: mount ebs
     mount:
@@ -16,4 +46,5 @@
         src: "{{ ebs_device }}"
         fstype: ext4
         state: mounted
+    when: dev_result.stdout != '' and not dev_map.mountpoint
 

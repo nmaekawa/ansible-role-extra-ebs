@@ -1,8 +1,8 @@
 extra-ebs
 =========
 
-given a device and a mountpoint, creates the filesystem and mounts in the
-mountpoint.
+given a device and a mountpoint, creates the filesystem in the device (ext4)
+and mounts it.
 
 requirements
 ------------
