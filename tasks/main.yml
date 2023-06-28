@@ -10,28 +10,33 @@
 
   - name: query system for device name and mountpoint
     shell: >
-      /bin/lsblk -o NAME,MOUNTPOINT -J | grep {{ device_name }}
+      /bin/lsblk -o NAME,MOUNTPOINT -J | jq '.blockdevices[] | select(.name == "{{ device_name }}")'
     register: dev_result
     ignore_errors: True
 
   - debug:
       var: dev_result
 
-  - name: get mountpoint, if device is mounted
-    set_fact: dev_map={{ dev_result.stdout | regex_replace('(^.*),$', '\\1') | from_json }}
-    when: "dev_result.stdout != ''"
-
   - fail:
       msg: "specified device ({{ ebs_device }}) does not exist in target node"
     when: dev_result.stdout == ''
 
+  - name: get mountpoint, if device is mounted
+    shell: >
+       /bin/lsblk -o NAME,MOUNTPOINT -J | jq '.blockdevices[] | select(.name == "{{ device_name }}").mountpoint'
+    register: dev_mountpoint
+    when: "dev_result.stdout != ''"
+
   - debug:
-      msg: "device already mounted in intended mountpoint {{ dev_map.mountpoint }}"
-    when: dev_result.stdout != '' and dev_map.mountpoint and dev_map.mountpoint == ebs_mountpoint
+      var: dev_mountpoint.stdout
+
+  - debug:
+      msg: "device already mounted in intended mountpoint {{ dev_mountpoint.stdout }}"
+    when: dev_mountpoint.stdout is defined and dev_mountpoint.stdout == ebs_mountpoint and dev_mountpoint.stdout != "null" and dev_montpoint.stdout != ""
 
   - fail:
-      msg: "device already mounted in different mountpoint ({{ dev_map.mountpoint }})"
-    when: dev_result.stdout != '' and dev_map.mountpoint and dev_map.mountpoint != ebs_mountpoint
+      msg: "device already mounted in different mountpoint ({{ dev_mountpoint }})"
+    when: dev_mountpoint.stdout is defined and dev_mountpoint.stdout == ebs_mountpoint and dev_mountpoint.stdout != "null" and dev_montpoint.stdout != ""
 
 
   # only proceed to make filesys if device exists and not mounted
@@ -40,7 +45,7 @@
     filesystem:
         fstype: ext4
         dev: "{{ ebs_device }}"
-    when: dev_result.stdout != '' and not dev_map.mountpoint
+    when: dev_mountpoint.stdout is not defined or dev_mountpoint.stdout == "null" or dev_mountpoint.stdout == ""
 
   - name: mount ebs
     mount:
@@ -48,6 +53,6 @@
         src: "{{ ebs_device }}"
         fstype: ext4
         state: mounted
-    when: dev_result.stdout != '' and not dev_map.mountpoint
+    when: dev_mountpoint.stdout is not defined or dev_mountpoint.stdout == "null" or dev_mountpoint.stdout == ""
 
 
