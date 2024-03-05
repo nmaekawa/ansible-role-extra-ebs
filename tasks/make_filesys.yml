@@ -1,0 +1,17 @@
+---
+
+  # only proceed to make filesys if device exists and not mounted
+  # THIS WONT WORK IN M5
+  - name: make filesystem out of ebs
+    filesystem:
+        fstype: ext4
+        dev: "{{ ebs_device }}"
+
+  - name: mount ebs
+    mount:
+        path: "{{ ebs_mountpoint }}"
+        src: "{{ ebs_device }}"
+        fstype: ext4
+        state: mounted
+
+
